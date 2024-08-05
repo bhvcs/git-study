@@ -1,0 +1,41 @@
+나는 수정 사항을 git에 저장하기 위해, 수정 -> git add -> commit 을 기계적으로 반복한다. 이 흐름에 대해 설명하겠다.
+git에는 세 개의 트리가 있다고 하자. HEAD, Index, Working Directory (여기서 트리라고 함은 그냥 하나의 컨테이너 구조라고 생각. Index는 실제로는 트리가 아니라고 한다.)
+
+내가 직접 만지고 작업하는 파일은 Working Directory에 담긴다. Index는 staging area를 나타내는 트리라고 생각하고, HEAD는 최근의 커밋을 나타내는 트리.
+git status 명령어는 이 세 트리간의 차이가 있을 때나 무언가를 출력한다. 만약 세 트리 내부 구조가 동일하다면 git status를 해도, 별다른 출력물을 보이지 않는다.
+만약 내가 로컬에서 어떤 파일을 수정했다고 해보자. 그리고 git status를 하면, 아직 Working Directory에만 수정 사항이 기록됬으므로 changes not staged for commit이 등장.
+git add까지 했다면 수정 사항이 Index까지 올라갔으므로 changes to be committed 문구 밑에 수정한 파일명이 기재된 상황을 볼 수 있다.
+여기서 git commit까지 한다면 HEAD Index Working Directory는 동일해지므로 git status는 별다른 출력을 안하겠지.
+
+위에 대한 이해를 통해 git reset을 살펴보자.
+나는 git reset HEAD~와 git reset mod.txt 명령어를 주로 사용한다. 두 개는 흐름이 약간 다르다. 
+reset은 HEAD를 이동시킨다. checkout은 HEAD가 이동하고자 하는 브랜치(가 가리키는)커밋으로 변경하는 반면, reset은 현재 브랜치가 가리키는 커밋을 바꾸는 것이다.
+위에 세 트리에 대한 이해를 바탕으로 내가 사용한 git reset HEAD~을 이해해보자.
+나는 해당 명령어를 사용할 때, commit을 한 단계 전으로 되돌리고 싶을 때 사용했다. 즉, HEAD가 가리키는 commit을 한단계 전으로 돌리는 것. 이제 좀 더 자세히 살펴보자.
+
+세 가지의 트리 구조가 있다고 했다. 그 중에서 진짜 딱 HEAD만 HEAD~에 해당하는 커밋으로 이동시킬 때, git reset --soft HEAD~ 명령어를 사용한다.
+Index와 Working Directory는 영향을 받지 않았기 때문에, 여기서 git commit을 하면 사실상 git commit --amend 명령어와 다를 것이 없다.
+
+이젠 내가 주로 사용한 git reset HEAD~를 보자. 사실 이 명령어는 git reset --mixed HEAD~에서 --mixed를 생략한 것이다. --soft 옵션과 비슷한 느낌이긴 한다만, --mixed는 HEAD를 한 단계 전으로 돌리고
+추가로 Index도 HEAD 트리와 동일한 구조로 업데이트 한다. 즉, --mixed는 HEAD와 Index를 이전 커밋의 상태로 만들어놓고, Working Directory만 그대로 둔다. git commit 뿐 아니라 git add의 전 상태로 돌아간 것이다.
+내 개인적인 생각으로는 git reset [--mixed] HEAD~만 알아도 문제는 없을 것 같다.
+
+마지막은 당연히 Working Directory까지 이전 상태로 돌려버리는 git reset --hard HEAD~ 명령어이다. 이는 로컬의 코드까지 되돌릴 수 있으므로 매우 유의해서 사용해야 할 것이다.
+git reset은 커밋 자체를 삭제하는 명령어가 아니다. 그래서 Working Directory의 파일을 커밋했다면, --hard로 돌렸더라도 다시 복구 할 수 있을 것이다. 하지만 커밋하지 않은 채로, --hard를 했다면, 로컬의
+변경사항은 그냥 없어질 것이다. 이를 유의하자.
+
+그럼 다음 git reset mod.txt를 보자. 이전에 봤던 reset의 첫번째 단계는 일단 HEAD 포인터를 이전 커밋을 가리키도록 하는 것인데, 파일을 기준으로 HEAD 포인터를 움직인다는 것은 상식적으로 말이 안된다.
+그래서 파일 경로가 인자로 들어온다면, HEAD 포인터는 그대로 두고, Index나 Working Directory를 수정할 때 사용한다. git reset mod.txt는 사실 git reset --mixed HEAD mod.txt 이다.
+HEAD 포인터가 가리키는 커밋에서의 mod.txt 파일을 Index에 복사하고 끝나는 것이다. (--mixed는 Index 트리까지 수정한다는 거고, HEAD로 명시했으므로 HEAD 포인터는 HEAD(그대로)에 둔다는 것이다.
+잘 이해해보면 Index area에 올려놓은 mod.txt 수정사항을 되돌린다고 볼 수 있고, 실제로 나도, git add로 staging area에 올린 것을 되돌리고 싶을 때 사용한다.
++ git reset eb43 -- mod.txt로 eb43으로 시작하는 커밋 버전의 mod.txt를 Index 트리로 들고 올 수 있다. (특정 커밋과 파일명을 함께 쓰는)
+
+현 브랜치: develop
+git reset master: develop 브랜치가 가리키는 커밋을 master가 가리키는 커밋으로 옮긴다.
+git checkout master: develop 브랜치가 가리키는 커밋은 그대로 두고, HEAD를 master 브랜치가 가리키는 커밋으로 돌린다.
+reset은 HEAD가 가리키는 것을 바꾸고, checkout은 HEAD의 브랜치 위치를 바꾼다.
+
+---
+https://git-scm.com/book/ko/v2/Git-%EB%8F%84%EA%B5%AC-Reset-%EB%AA%85%ED%99%95%ED%9E%88-%EC%95%8C%EA%B3%A0-%EA%B0%80%EA%B8%B0
+해당 링크에서 reset이나 checkout으로 상태를 되돌리고자 할 때, 안정성을 확인할 수 있다.
+
